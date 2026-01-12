@@ -1,7 +1,10 @@
+import functools
 import logging
+import sys
+import types
 import openai
 import os
-from typing import Callable
+from typing import Callable, Optional
 from erin.prompt import format_prompt
 from erin.executor import FunctionExecutor
 from typing import List, Tuple
@@ -23,11 +26,14 @@ else:
 openai_client = openai.OpenAI(**_openai_client_kwargs)
 logger.info("OpenAI client initialized")
 
+
 class LLMCallable(Callable):
     function_name = None
+    docstring = None
 
-    def __init__(self, function_name):
+    def __init__(self, function_name, docstring=None):
         self.function_name = function_name
+        self.docstring = docstring
 
     def __call__(self, *args):
         logger.info(f"Calling function: {self.function_name}, arguments: {args}")
@@ -37,10 +43,13 @@ class LLMCallable(Callable):
             model = "gpt-4o-mini"
         logger.debug(f"Using model: {model}")
 
-        formatted_args: List[Tuple[str, str]] = [((f"arg{i}", type(arg).__name__)) for i, arg in enumerate(args)]
+        formatted_args: List[Tuple[str, str]] = [
+            ((f"arg{i}", type(arg).__name__)) for i, arg in enumerate(args)
+        ]
         logger.debug(f"Formatted arguments: {formatted_args}")
 
-        prompt = format_prompt(self.function_name, formatted_args)
+        logger.debug(f"Function documentation: {self.docstring }")
+        prompt = format_prompt(self.function_name, formatted_args, self.docstring)
         logger.debug(f"Generated prompt length: {len(prompt)} characters")
 
         logger.info("Calling OpenAI API to generate function code...")
@@ -49,10 +58,12 @@ class LLMCallable(Callable):
                 model=model,
                 messages=[
                     {"role": "user", "content": prompt},
-                ]
+                ],
             )
             code = response.choices[0].message.content
-            logger.info(f"Successfully generated function code, code length: {len(code)} characters")
+            logger.info(
+                f"Successfully generated function code, code length: {len(code)} characters"
+            )
             logger.debug(f"Generated code:\n{code}")
         except Exception as e:
             logger.error(f"OpenAI API call failed: {e}", exc_info=True)
@@ -68,5 +79,23 @@ class LLMCallable(Callable):
             logger.error(f"Function execution failed: {e}", exc_info=True)
             raise
 
+
+def erin(func: Optional[Callable] = None, *, name: Optional[str] = None) -> Callable:
+    def _decorate(f: Callable):
+        llm = LLMCallable(name or f.__name__, docstring=f.__doc__)
+        functools.update_wrapper(llm, f)
+        return llm
+
+    return _decorate if func is None else _decorate(func)
+
+
 def __getattr__(name):
     return LLMCallable(name)
+
+
+class _ErinModule(types.ModuleType):
+    def __call__(self, func: Optional[Callable] = None, *, name: Optional[str] = None):
+        return erin(func, name=name)
+
+
+sys.modules[__name__].__class__ = _ErinModule
