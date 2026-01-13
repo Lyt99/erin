@@ -19,13 +19,14 @@ Your task:
         Prefixes like is_/has_/can_ imply boolean predicates.
         Words like merge/join/concat/combine imply combining inputs.
         unique/distinct/deduplicate imply removing duplicates while preserving order if sensible.
-        sort/ordered/ranked imply returning a sorted result without mutating inputs unless name includes “inplace”.
+        sort/ordered/ranked imply returning a sorted result without mutating inputs unless name includes "inplace".
         normalize/standardize/trim/clean imply data cleaning or scaling with safe defaults.
         find/search/index/contains imply lookup logic and clear failure behavior.
+        Names like fetch/get/post/request/api/call imply HTTP API calls.
     Choose an appropriate return type. If not obvious, select the most common-sense type and document your assumption in the docstring.
     Write a clean, efficient implementation using only the Python 3.10+ standard library.
     Validate inputs where reasonable (e.g., types, value ranges, emptiness). Raise ValueError or TypeError with clear messages rather than failing silently.
-    Do not perform I/O, printing, logging, or network calls. Do not mutate inputs unless the name includes “inplace” or “mutate”.
+    You may perform HTTP API calls using urllib.request or urllib3 from the standard library when the function name or context suggests network operations. Handle network errors appropriately (e.g., urllib.error.URLError, timeout exceptions). Do not mutate inputs unless the name includes "inplace" or "mutate".
     Prefer deterministic behavior. Avoid randomness unless the name clearly implies it.
 
 Output format:
