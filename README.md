@@ -1,59 +1,62 @@
 # Erin
 
-Erin 是一个基于 OpenAI 的 Python 函数自动生成工具。通过函数名和参数类型，Erin 可以自动推断函数意图并生成对应的 Python 实现代码。
+[English](README.md) | [中文](README_cn.md)
 
-## 特性
+Erin is an OpenAI-based Python function auto-generation tool. By analyzing function names and parameter types, Erin can automatically infer function intent and generate corresponding Python implementation code.
 
-- 🤖 **智能函数生成**：根据函数名和参数类型自动生成函数实现
-- 🔧 **动态执行**：生成的函数可以立即执行
-- 📝 **类型推断**：自动从参数值推断参数类型
-- 🔌 **可配置**：支持自定义 OpenAI API 端点和模型
-- 📊 **日志记录**：完整的日志系统，方便调试和监控
+## Features
 
-## 安装
+- 🤖 **Smart Function Generation**: Automatically generates function implementations based on function names and parameter types
+- 🔧 **Dynamic Execution**: Generated functions can be executed immediately
+- 📝 **Type Inference**: Automatically infers parameter types from argument values
+- 🎨 **Decorator Support**: Supports `@erin` decorator, automatically uses function docstrings as context
+- 🔌 **Configurable**: Supports custom OpenAI API endpoints and models
+- 📊 **Logging**: Complete logging system for debugging and monitoring
 
-### 使用 uv（推荐）
+## Installation
+
+### Using uv (Recommended)
 
 ```bash
-# 安装 uv（如果还没有）
+# Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 安装项目依赖
+# Install project dependencies
 uv sync
 ```
 
-### 使用 pip
+### Using pip
 
 ```bash
 pip install -e .
 ```
 
-## 配置
+## Configuration
 
-### 环境变量
+### Environment Variables
 
-Erin 支持以下环境变量：
+Erin supports the following environment variables:
 
-| 环境变量 | 说明 | 必需 | 默认值 |
-|---------|------|------|--------|
-| `OPENAI_API_KEY` | OpenAI API 密钥 | 是 | - |
-| `OPENAI_BASE_URL` | 自定义 API 端点（如使用兼容 OpenAI API 的服务） | 否 | OpenAI 官方端点 |
-| `OPENAI_MODEL` | 使用的模型名称 | 否 | `gpt-4o-mini` |
+| Environment Variable | Description | Required | Default |
+|---------------------|-------------|----------|---------|
+| `OPENAI_API_KEY` | OpenAI API key | Yes | - |
+| `OPENAI_BASE_URL` | Custom API endpoint (e.g., for OpenAI-compatible services) | No | OpenAI official endpoint |
+| `OPENAI_MODEL` | Model name to use | No | `gpt-4o-mini` |
 
-### 设置环境变量
+### Setting Environment Variables
 
 **Linux/macOS:**
 ```bash
 export OPENAI_API_KEY="your-api-key-here"
-export OPENAI_BASE_URL="https://api.openai.com/v1"  # 可选
-export OPENAI_MODEL="gpt-4o-mini"  # 可选
+export OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional
+export OPENAI_MODEL="gpt-4o-mini"  # Optional
 ```
 
 **Windows (PowerShell):**
 ```powershell
 $env:OPENAI_API_KEY="your-api-key-here"
-$env:OPENAI_BASE_URL="https://api.openai.com/v1"  # 可选
-$env:OPENAI_MODEL="gpt-4o-mini"  # 可选
+$env:OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional
+$env:OPENAI_MODEL="gpt-4o-mini"  # Optional
 ```
 
 **Windows (CMD):**
@@ -63,144 +66,202 @@ set OPENAI_BASE_URL=https://api.openai.com/v1
 set OPENAI_MODEL=gpt-4o-mini
 ```
 
-## 使用方法
+## Usage
 
-### 基本用法
+### Basic Usage
 
 ```python
 import erin
 
-# 直接调用函数名，Erin 会根据函数名和参数自动生成实现
+# Directly call function names, Erin will automatically generate implementations based on function name and arguments
 result = erin.calculate_sum(1, 2, 3)
-print(result)  # 输出: 6
+print(result)  # Output: 6
 
-# 计算平均值
+# Calculate average
 avg = erin.calculate_average([1, 2, 3, 4, 5])
-print(avg)  # 输出: 3.0
+print(avg)  # Output: 3.0
 
-# 检查是否为偶数
+# Check if even
 is_even = erin.is_even(4)
-print(is_even)  # 输出: True
+print(is_even)  # Output: True
 ```
 
-### 工作原理
+### Decorator Usage
 
-1. **函数调用**：当你调用 `erin.function_name(...)` 时，Erin 会：
-   - 从参数值推断参数类型
-   - 根据函数名生成 prompt
-   - 调用 OpenAI API 生成函数代码
-   - 动态执行生成的代码并返回结果
+Erin supports using decorators to define functions. The decorator automatically uses the function's docstring as context hints to help generate more accurate function implementations:
 
-2. **类型推断**：Erin 会自动从参数值推断类型：
+```python
+import erin
+
+# Use @erin decorator
+@erin
+def calculate_sum(a, b, c):
+    """Calculate the sum of three numbers"""
+    pass
+
+result = calculate_sum(1, 2, 3)
+print(result)  # Output: 6
+
+# Use @erin(name="...") to specify function name
+@erin(name="add_numbers")
+def my_function(x, y):
+    """Add two numbers together"""
+    pass
+
+result = my_function(5, 10)
+print(result)  # Output: 15
+
+# You can also use erin module directly as a decorator
+@erin
+def reverse_string(s):
+    """Reverse a string"""
+    pass
+
+reversed_str = reverse_string("hello")
+print(reversed_str)  # Output: "olleh"
+```
+
+**Decorator Advantages**:
+- 📝 **Automatic Docstring Usage**: The function's `__doc__` is automatically passed as `optional_context` to the prompt, helping the LLM better understand function intent
+- 🎯 **More Accurate Implementation**: By providing context through docstrings, the generated function implementations are usually more aligned with expectations
+- 🔄 **Preserve Function Signature**: Uses `functools.update_wrapper` to preserve original function metadata
+
+### How It Works
+
+1. **Function Call**: When you call `erin.function_name(...)` or use a decorator, Erin will:
+   - Infer parameter types from argument values
+   - Generate a prompt based on the function name (if using a decorator, it will also include the function's docstring as context)
+   - Call OpenAI API to generate function code
+   - Dynamically execute the generated code and return the result
+
+2. **Type Inference**: Erin automatically infers types from argument values:
    - `1` → `int`
    - `"hello"` → `str`
    - `[1, 2, 3]` → `list`
    - `{"key": "value"}` → `dict`
 
-### 更多示例
+3. **Decorator Pattern**: When using the `@erin` decorator:
+   - The function's `__doc__` is automatically extracted and passed as `optional_context` to the prompt
+   - You can customize the function name via the `name` parameter (defaults to the decorated function's name)
+   - The decorated function preserves original metadata (via `functools.update_wrapper`)
+
+### More Examples
 
 ```python
 import erin
 
-# 字符串操作
+# String operations
 reversed_str = erin.reverse_string("hello")
 print(reversed_str)  # "olleh"
 
-# 列表操作
+# List operations
 unique_items = erin.remove_duplicates([1, 2, 2, 3, 3, 4])
 print(unique_items)  # [1, 2, 3, 4]
 
-# 字典操作
+# Dictionary operations
 merged = erin.merge_dicts({"a": 1}, {"b": 2})
 print(merged)  # {"a": 1, "b": 2}
 
-# 数学运算
+# Math operations
 factorial = erin.calculate_factorial(5)
 print(factorial)  # 120
+
+# Using decorator to define functions (recommended approach)
+@erin
+def find_max_value(numbers):
+    """Find the maximum value from a list of numbers"""
+    pass
+
+max_val = find_max_value([3, 1, 4, 1, 5, 9, 2, 6])
+print(max_val)  # 9
+
+@erin(name="custom_name")
+def my_custom_function(data):
+    """Process data and return processed results"""
+    pass
 ```
 
-## 日志配置
+## Logging Configuration
 
-Erin 内置了完整的日志系统。要启用日志，需要配置 Python 的 logging 模块：
+Erin has a built-in complete logging system. To enable logging, you need to configure Python's logging module:
 
 ```python
 import logging
 
-# 配置日志级别
+# Configure logging level
 logging.basicConfig(
-    level=logging.INFO,  # 或 logging.DEBUG 查看更详细的信息
+    level=logging.INFO,  # Or logging.DEBUG for more detailed information
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# 现在使用 erin 时会看到日志输出
+# Now you'll see log output when using erin
 import erin
 result = erin.calculate_sum(1, 2, 3)
 ```
 
-### 日志级别
+### Log Levels
 
-- **INFO**：记录关键操作（函数调用、API 调用、执行结果）
-- **DEBUG**：记录详细信息（参数格式化、prompt 内容、代码生成等）
+- **INFO**: Records key operations (function calls, API calls, execution results)
+- **DEBUG**: Records detailed information (parameter formatting, prompt content, code generation, etc.)
 
-### 日志输出示例
+### Log Output Example
 
 ```
-2024-01-01 12:00:00 - erin - INFO - OpenAI 客户端初始化完成
-2024-01-01 12:00:01 - erin - INFO - 调用函数: calculate_sum, 参数: (1, 2, 3)
-2024-01-01 12:00:01 - erin - INFO - 正在调用 OpenAI API 生成函数代码...
-2024-01-01 12:00:02 - erin - INFO - 成功生成函数代码，代码长度: 45 字符
-2024-01-01 12:00:02 - erin - INFO - 正在执行生成的函数...
-2024-01-01 12:00:02 - erin - INFO - 函数执行成功，返回值: 6
+2024-01-01 12:00:00 - erin - INFO - OpenAI client initialized
+2024-01-01 12:00:01 - erin - INFO - Calling function: calculate_sum, arguments: (1, 2, 3)
+2024-01-01 12:00:01 - erin - INFO - Calling OpenAI API to generate function code...
+2024-01-01 12:00:02 - erin - INFO - Successfully generated function code, code length: 45 characters
+2024-01-01 12:00:02 - erin - INFO - Executing generated function...
+2024-01-01 12:00:02 - erin - INFO - Function executed successfully, return value: 6
 ```
 
-## 注意事项
+## Notes
 
-1. **首次调用**：每个函数名在首次调用时会生成代码，后续调用会重新生成（当前版本不支持缓存）
+1. **First Call**: Each function name generates code on the first call, and subsequent calls will regenerate (current version does not support caching)
 
-2. **API 成本**：每次函数调用都会调用 OpenAI API，请注意 API 使用成本
+2. **API Costs**: Each function call will invoke the OpenAI API, please be aware of API usage costs
 
-3. **安全性**：生成的代码会在当前 Python 环境中执行，请确保函数名和参数来源可信
+3. **Security**: Generated code will execute in the current Python environment, please ensure function names and parameters are from trusted sources
 
-4. **错误处理**：如果生成的代码有错误，Erin 会抛出异常并记录详细日志
+4. **Error Handling**: If the generated code has errors, Erin will raise exceptions and log detailed information
 
-5. **类型推断限制**：当前版本从参数值推断类型，复杂类型（如 `list[int]`）可能被推断为 `list`
+5. **Type Inference Limitations**: The current version infers types from argument values, complex types (such as `list[int]`) may be inferred as `list`
 
-## 项目结构
+## Project Structure
 
 ```
 erin/
-├── __init__.py      # 主模块，包含 LLMCallable 类
-├── prompt.py         # Prompt 格式化模块
-└── executor.py       # 函数执行器模块
+├── __init__.py      # Main module, contains LLMCallable class
+├── prompt.py         # Prompt formatting module
+└── executor.py       # Function executor module
 ```
 
-## 开发
+## Development
 
-### 运行测试
+### Running Tests
 
 ```bash
-# 使用 uv
+# Using uv
 uv run python -m pytest
 
-# 或使用 pip
+# Or using pip
 pytest
 ```
 
-### 代码格式
+### Code Formatting
 
 ```bash
-# 使用 ruff（如果已配置）
+# Using ruff (if configured)
 ruff format .
 ruff check .
 ```
 
-## 许可证
+## License
 
-本项目采用 [WTFPL](LICENSE) (Do What The F*ck You Want To Public License) 许可证。
+This project is licensed under the [WTFPL](LICENSE) (Do What The F*ck You Want To Public License).
 
-你可以自由地使用、修改、分发本项目的代码，无需任何限制。
+You are free to use, modify, and distribute the code of this project without any restrictions.
 
-## 贡献
+## Contributing
 
-欢迎提交 Issue 和 Pull Request！
-
+Issues and Pull Requests are welcome!
