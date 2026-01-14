@@ -4,7 +4,7 @@ import sys
 import types
 import openai
 import os
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 from erin.prompt import format_prompt
 from erin.executor import FunctionExecutor
 from typing import List, Tuple
@@ -62,8 +62,14 @@ class LLMCallable(Callable):
         ]
         logger.debug(f"Formatted arguments: {formatted_args}")
 
+        # Prepare parameter values list
+        parameter_values: List[Tuple[str, Any]] = [
+            (f"arg{i}", arg) for i, arg in enumerate(args)
+        ]
+        logger.debug(f"Parameter values: {parameter_values}")
+
         logger.debug(f"Function documentation: {self.docstring }")
-        prompt = format_prompt(self.function_name, formatted_args, self.docstring)
+        prompt = format_prompt(self.function_name, formatted_args, parameter_values, self.docstring)
         logger.debug(f"Generated prompt length: {len(prompt)} characters")
 
         logger.info("Calling OpenAI API to generate function code...")

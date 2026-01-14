@@ -16,19 +16,16 @@ class FunctionExecutor(Callable):
         globals_ = globals().copy()
         globals_['chat'] = self.chat_func
 
-        args_str = ", ".join([f"{arg!r}" for arg in args])
-        if kwargs:
-            kwargs_str = ", ".join([f"{key}={value!r}" for key, value in kwargs.items()])
-            args_str += f", {kwargs_str}"
-
         logger.debug(f"Code to execute:\n{self.func_def}")
-        logger.debug(f"Call statement: {self.func_name}({args_str})")
+        logger.debug(f"Calling function {self.func_name} with args={args}, kwargs={kwargs}")
 
         try:
             exec(self.func_def, globals_, globals_)
             logger.debug("Function definition executed successfully")
+            globals_['args'] = args
+            globals_['kwargs'] = kwargs
 
-            exec(f"__result__ = {self.func_name}({args_str})", globals_, globals_)
+            exec(f"__result__ = {self.func_name}(*args, **kwargs)", globals_, globals_)
             result = globals_["__result__"]
             logger.debug(f"Function call succeeded, result: {result}")
             return result
