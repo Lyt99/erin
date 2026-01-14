@@ -7,6 +7,7 @@ import os
 from typing import Callable, Optional, Any
 from erin.prompt import format_prompt
 from erin.executor import FunctionExecutor
+from erin.cache import get_cached_code, set_cached_code
 from typing import List, Tuple
 
 # Configure logging
@@ -62,32 +63,42 @@ class LLMCallable(Callable):
         ]
         logger.debug(f"Formatted arguments: {formatted_args}")
 
-        # Prepare parameter values list
-        parameter_values: List[Tuple[str, Any]] = [
-            (f"arg{i}", arg) for i, arg in enumerate(args)
-        ]
-        logger.debug(f"Parameter values: {parameter_values}")
+        # Check cache first
+        code = get_cached_code(self.function_name, formatted_args)
 
-        logger.debug(f"Function documentation: {self.docstring }")
-        prompt = format_prompt(self.function_name, formatted_args, parameter_values, self.docstring)
-        logger.debug(f"Generated prompt length: {len(prompt)} characters")
+        if code is None:
+            # Cache miss: need to generate code using LLM
+            # Prepare parameter values list
+            parameter_values: List[Tuple[str, Any]] = [
+                (f"arg{i}", arg) for i, arg in enumerate(args)
+            ]
+            logger.debug(f"Parameter values: {parameter_values}")
 
-        logger.info("Calling OpenAI API to generate function code...")
-        try:
-            response = openai_client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-            )
-            code = response.choices[0].message.content
-            logger.info(
-                f"Successfully generated function code, code length: {len(code)} characters"
-            )
-            logger.debug(f"Generated code:\n{code}")
-        except Exception as e:
-            logger.error(f"OpenAI API call failed: {e}", exc_info=True)
-            raise
+            logger.debug(f"Function documentation: {self.docstring }")
+            prompt = format_prompt(self.function_name, formatted_args, parameter_values, self.docstring)
+            logger.debug(f"Generated prompt length: {len(prompt)} characters")
+
+            logger.info("Calling OpenAI API to generate function code...")
+            try:
+                response = openai_client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "user", "content": prompt},
+                    ],
+                )
+                code = response.choices[0].message.content
+                logger.info(
+                    f"Successfully generated function code, code length: {len(code)} characters"
+                )
+                logger.debug(f"Generated code:\n{code}")
+
+                # Store in cache
+                set_cached_code(self.function_name, formatted_args, code)
+            except Exception as e:
+                logger.error(f"OpenAI API call failed: {e}", exc_info=True)
+                raise
+        else:
+            logger.info("Using cached function code")
 
         executor = FunctionExecutor(self.function_name, code, self.chat)
         logger.info("Executing generated function...")
