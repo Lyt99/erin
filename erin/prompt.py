@@ -5,7 +5,7 @@ from typing import List, Tuple, Any, Dict
 logger = logging.getLogger(__name__)
 
 # Maximum parameter value string length, values exceeding this will be simplified or skipped
-MAX_PARAM_VALUE_LENGTH = 500
+MAX_PARAM_VALUE_LENGTH = 200
 
 PROMPT = """
 You are a Python function synthesizer named Erin. You will receive a function name and parameter types, and you must infer the most plausible behavior from the name and types, then implement the function in Python.
@@ -83,6 +83,23 @@ def format_param_value(value: Any, visited: set = None) -> str:
     if visited is None:
         visited = set()
 
+    # Check for circular reference using object id
+    obj_id = id(value)
+    if obj_id in visited:
+        return "... (circular reference)"
+
+    # Add to visited set for mutable types (lists, dicts, custom objects)
+    # For immutable types (str, int, float, bool, tuple), we don't need to track
+    # but we still check to avoid issues with tuples containing mutable objects
+    is_mutable = isinstance(value, (list, dict)) or (
+        hasattr(value, '__class__') and
+        value.__class__.__module__ != 'builtins' and
+        not isinstance(value, (str, int, float, bool, tuple))
+    )
+
+    if is_mutable:
+        visited.add(obj_id)
+
     try:
         # Handle None
         if value is None:
@@ -102,14 +119,17 @@ def format_param_value(value: Any, visited: set = None) -> str:
         if isinstance(value, list):
             if len(value) > 20:  # List too long, simplify
                 if len(str(value)) > MAX_PARAM_VALUE_LENGTH:
-                    return f"[{format_param_value(value[0]) if value else '...'}, ...] (list with {len(value)} items)"
+                    return f"[{format_param_value(value[0], visited) if value else '...'}, ...] (list with {len(value)} items)"
                 # Try to show first few elements
-                preview = [format_param_value(item, visited.copy()) for item in value[:3]]
+                preview = []
+                for item in value[:3]:
+                    item_str = format_param_value(item, visited)
+                    preview.append(item_str if item_str else "...")
                 return f"[{', '.join(preview)}, ...] (list with {len(value)} items)"
             else:
                 items = []
                 for item in value:
-                    item_str = format_param_value(item, visited.copy())
+                    item_str = format_param_value(item, visited)
                     if item_str and len(item_str) < 100:
                         items.append(item_str)
                     else:
@@ -129,16 +149,18 @@ def format_param_value(value: Any, visited: set = None) -> str:
                 for i, (k, v) in enumerate(value.items()):
                     if i >= 3:
                         break
-                    key_str = format_param_value(k, visited.copy())
-                    val_str = format_param_value(v, visited.copy())
+                    key_str = format_param_value(k, visited)
+                    val_str = format_param_value(v, visited)
                     if key_str and val_str and len(key_str) + len(val_str) < 150:
                         preview_items.append(f"{key_str}: {val_str}")
+                    else:
+                        preview_items.append("...")
                 return f"{{{', '.join(preview_items)}, ...}} (dict with {len(value)} items)"
             else:
                 items = []
                 for k, v in value.items():
-                    key_str = format_param_value(k, visited.copy())
-                    val_str = format_param_value(v, visited.copy())
+                    key_str = format_param_value(k, visited)
+                    val_str = format_param_value(v, visited)
                     if key_str and val_str and len(key_str) + len(val_str) < 150:
                         items.append(f"{key_str}: {val_str}")
                     else:
@@ -154,9 +176,15 @@ def format_param_value(value: Any, visited: set = None) -> str:
         # Handle tuples
         if isinstance(value, tuple):
             if len(value) > 10:
-                preview = [format_param_value(item, visited.copy()) for item in value[:3]]
+                preview = []
+                for item in value[:3]:
+                    item_str = format_param_value(item, visited)
+                    preview.append(item_str if item_str else "...")
                 return f"({', '.join(preview)}, ...) (tuple with {len(value)} items)"
-            items = [format_param_value(item, visited.copy()) for item in value]
+            items = []
+            for item in value:
+                item_str = format_param_value(item, visited)
+                items.append(item_str if item_str else "...")
             result = f"({', '.join(items)})"
             if len(result) > MAX_PARAM_VALUE_LENGTH:
                 return f"(...) (tuple with {len(value)} items, too long to display)"
@@ -176,6 +204,10 @@ def format_param_value(value: Any, visited: set = None) -> str:
     except Exception as e:
         logger.debug(f"Error formatting param value: {e}")
         return None
+    finally:
+        # Remove from visited set only if we added it
+        if is_mutable:
+            visited.discard(obj_id)
 
 
 def format_object_structure(obj: Any, visited: set = None) -> str:
@@ -212,7 +244,8 @@ def format_object_structure(obj: Any, visited: set = None) -> str:
             attr_examples = []
             for key, value in list(attrs.items())[:10]:  # Limit to 10 attributes max
                 try:
-                    value_str = format_param_value(value, visited.copy())
+                    # Pass the same visited set to detect circular references
+                    value_str = format_param_value(value, visited)
                     if value_str and len(value_str) < 200:  # Attribute value should not be too long
                         attr_examples.append(f"        {key}: {value_str}")
                 except:
