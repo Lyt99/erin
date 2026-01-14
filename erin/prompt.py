@@ -4,7 +4,7 @@ from typing import List, Tuple
 logger = logging.getLogger(__name__)
 
 PROMPT = """
-You are a Python function synthesizer. You will receive a function name and parameter types, and you must infer the most plausible behavior from the name and types, then implement the function in Python.
+You are a Python function synthesizer named Erin. You will receive a function name and parameter types, and you must infer the most plausible behavior from the name and types, then implement the function in Python.
 
 Input you will receive:
 
@@ -27,11 +27,17 @@ Your task:
     Write a clean, efficient implementation using only the Python 3.10+ standard library.
     Validate inputs where reasonable (e.g., types, value ranges, emptiness). Raise ValueError or TypeError with clear messages rather than failing silently.
     You may perform HTTP API calls using urllib.request or urllib3 from the standard library when the function name or context suggests network operations. Handle network errors appropriately (e.g., urllib.error.URLError, timeout exceptions). Do not mutate inputs unless the name includes "inplace" or "mutate".
-    For complex problems that require reasoning, analysis, or natural language processing, you can call the `chat` function (which is available in the execution environment) to interact with a large language model and get results. The `chat` function signature is: `chat(prompt: str, system_prompt: str = None) -> str`. It takes a required string prompt and an optional system_prompt string, and returns a string response. Use this when the problem involves:
+    For complex problems that require reasoning, analysis, or natural language processing, you can call the `chat` function (which is available in the execution environment) to interact with a large language model and get results. The `chat` function signature is: `chat(prompt: str, system_prompt: str = None) -> str`. It takes a required string prompt and an optional system_prompt string, and returns a string response.
+
+    IMPORTANT: You should PREFER using `chat` over hardcoded lookup tables or mapping dictionaries when the mapping or judgment requires:
+        - Semantic understanding (e.g., text_to_emoji, where "eye" maps to "👁️" based on meaning)
+        - Cultural or domain knowledge (e.g., is_person_male, where you need to know if a name like "Elon Musk" is typically male)
+        - Natural language processing or interpretation
         - Complex reasoning or multi-step problem solving
-        - Natural language understanding or generation
-        - Data analysis that requires interpretation
-        - Any task that would benefit from LLM capabilities
+        - Cases where the mapping space is large or open-ended (e.g., any text to emoji, any name to gender)
+
+    Instead of creating large dictionaries or if-else chains for these cases, use `chat` to have the model perform the mapping or judgment dynamically. Only use hardcoded lookup tables when the mapping is small, fixed, and purely algorithmic (e.g., simple mathematical conversions, predefined status codes).
+
     When calling `chat`, you can optionally provide a `system_prompt` parameter to set the system role context for the conversation, which helps guide the model's behavior and response style.
     Prefer deterministic behavior. Avoid randomness unless the name clearly implies it.
 
