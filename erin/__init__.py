@@ -26,10 +26,30 @@ else:
 openai_client = openai.OpenAI(**_openai_client_kwargs)
 logger.info("OpenAI client initialized")
 
+model = os.getenv("OPENAI_MODEL")
+if model is None:
+    model = "gpt-4o-mini"
+logger.debug(f"Using model: {model}")
+
+
+
 
 class LLMCallable(Callable):
     function_name = None
     docstring = None
+
+    def chat(self, prompt: str, system_prompt: str = None) -> str:
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        response = openai_client.chat.completions.create(
+            model=model,
+            messages=messages,
+        )
+        logger.info(f"Chat response: {response.choices[0].message.content}")
+        return response.choices[0].message.content
+
 
     def __init__(self, function_name, docstring=None):
         self.function_name = function_name
@@ -37,12 +57,6 @@ class LLMCallable(Callable):
 
     def __call__(self, *args):
         logger.info(f"Calling function: {self.function_name}, arguments: {args}")
-
-        model = os.getenv("OPENAI_MODEL")
-        if model is None:
-            model = "gpt-4o-mini"
-        logger.debug(f"Using model: {model}")
-
         formatted_args: List[Tuple[str, str]] = [
             ((f"arg{i}", type(arg).__name__)) for i, arg in enumerate(args)
         ]
@@ -69,7 +83,7 @@ class LLMCallable(Callable):
             logger.error(f"OpenAI API call failed: {e}", exc_info=True)
             raise
 
-        executor = FunctionExecutor(self.function_name, code)
+        executor = FunctionExecutor(self.function_name, code, self.chat)
         logger.info("Executing generated function...")
         try:
             result = executor(*args)

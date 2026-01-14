@@ -27,6 +27,12 @@ Your task:
     Write a clean, efficient implementation using only the Python 3.10+ standard library.
     Validate inputs where reasonable (e.g., types, value ranges, emptiness). Raise ValueError or TypeError with clear messages rather than failing silently.
     You may perform HTTP API calls using urllib.request or urllib3 from the standard library when the function name or context suggests network operations. Handle network errors appropriately (e.g., urllib.error.URLError, timeout exceptions). Do not mutate inputs unless the name includes "inplace" or "mutate".
+    For complex problems that require reasoning, analysis, or natural language processing, you can call the `chat` function (which is available in the execution environment) to interact with a large language model and get results. The `chat` function signature is: `chat(prompt: str, system_prompt: str = None) -> str`. It takes a required string prompt and an optional system_prompt string, and returns a string response. Use this when the problem involves:
+        - Complex reasoning or multi-step problem solving
+        - Natural language understanding or generation
+        - Data analysis that requires interpretation
+        - Any task that would benefit from LLM capabilities
+    When calling `chat`, you can optionally provide a `system_prompt` parameter to set the system role context for the conversation, which helps guide the model's behavior and response style.
     Prefer deterministic behavior. Avoid randomness unless the name clearly implies it.
 
 Output format:

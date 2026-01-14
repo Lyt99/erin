@@ -3,17 +3,19 @@ from typing import Callable
 
 logger = logging.getLogger(__name__)
 
-
 class FunctionExecutor(Callable):
-    def __init__(self, func_name: str, func_def: str):
+    def __init__(self, func_name: str, func_def: str, chat_func: Callable):
         self.func_name = func_name
         self.func_def = func_def
+        self.chat_func = chat_func
         logger.debug(f"Initializing FunctionExecutor: {func_name}")
 
     def __call__(self, *args, **kwargs) -> str:
         logger.debug(f"Executing function {self.func_name}, arguments: args={args}, kwargs={kwargs}")
 
         globals_ = globals().copy()
+        globals_['chat'] = self.chat_func
+
         args_str = ", ".join([f"{arg!r}" for arg in args])
         if kwargs:
             kwargs_str = ", ".join([f"{key}={value!r}" for key, value in kwargs.items()])
