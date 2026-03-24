@@ -3,7 +3,7 @@ name = "erin"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.8"
 license = {text = "WTFPL"}
 dependencies = [
     "openai>=2.15.0",
